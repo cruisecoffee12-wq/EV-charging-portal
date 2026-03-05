@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EV Charge — Station Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#070b16;--surface:#0f1826;--surface2:#162133;--surface3:#1d2d45;
+  --border:#1e3050;--accent:#00e5b8;--accent2:#2979ff;--danger:#ff3d57;
+  --warning:#ffab00;--success:#00c853;--text:#dde8f5;--text2:#5d7a9e;--text3:#8fa8c8;
+  --radius:13px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-height:100vh;}
+
+/* NAV */
+nav{background:rgba(15,24,38,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;flex-shrink:0;}
+.nav-logo{display:flex;align-items:center;gap:10px;}
+.bolt{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:grid;place-items:center;font-size:17px;}
+.brand{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;}
+.brand em{color:var(--accent);font-style:normal;}
+.nav-station{margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:13px;color:var(--text3);}
+.nav-station strong{color:var(--accent);}
+.nav-admin{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3);}
+.nav-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:#001a12;}
+.btn-out{background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:8px;transition:.2s;}
+.btn-out:hover{color:var(--danger);}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 10px;flex-shrink:0;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;}
+.si-sec{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);padding:0 12px;margin:16px 0 8px;}
+.si-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--text2);font-size:14px;font-weight:500;margin-bottom:2px;transition:.2s;}
+.si-item:hover,.si-item.active{background:rgba(0,229,184,.1);color:var(--accent);}
+.si-icon{font-size:17px;width:22px;text-align:center;}
+.si-badge{margin-left:auto;background:var(--accent);color:#001a12;font-size:10px;font-weight:800;border-radius:10px;padding:2px 7px;}
+
+.main{flex:1;padding:28px;overflow-y:auto;min-width:0;}
+.page{display:none;animation:fadeUp .3s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+/* HEADINGS */
+.ph{margin-bottom:24px;}
+.pt{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.4px;}
+.ps{color:var(--text2);font-size:14px;margin-top:4px;}
+
+/* STATS ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.kpi:nth-child(1)::after{background:var(--accent);}
+.kpi:nth-child(2)::after{background:var(--accent2);}
+.kpi:nth-child(3)::after{background:var(--warning);}
+.kpi:nth-child(4)::after{background:var(--success);}
+.kpi-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:10px;}
+.kpi-val{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;line-height:1;}
+.kpi-ico{position:absolute;right:16px;top:16px;font-size:24px;opacity:.18;}
+
+/* TABLE */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--surface2);padding:11px 16px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:700;}
+td{padding:13px 16px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.mono{font-family:monospace;font-size:12px;}
+
+/* PILLS */
+.pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.pill-Booked{background:rgba(41,121,255,.15);color:#60a5fa;border:1px solid rgba(41,121,255,.3);}
+.pill-CheckedIn{background:rgba(0,229,184,.15);color:var(--accent);border:1px solid rgba(0,229,184,.3);}
+.pill-Completed{background:rgba(93,122,158,.1);color:var(--text3);border:1px solid var(--border);}
+.pill-Cancelled{background:rgba(255,61,87,.1);color:var(--danger);border:1px solid rgba(255,61,87,.3);}
+.pill-Pending{background:rgba(255,171,0,.12);color:var(--warning);border:1px solid rgba(255,171,0,.25);}
+
+/* BUTTONS */
+.btn{border:none;border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:.2s;letter-spacing:.2px;}
+.btn-check{background:rgba(0,229,184,.15);color:var(--accent);}
+.btn-check:hover{background:rgba(0,229,184,.3);}
+.btn-done{background:rgba(41,121,255,.15);color:var(--accent2);}
+.btn-done:hover{background:rgba(41,121,255,.3);}
+.btn-cancel{background:rgba(255,61,87,.12);color:var(--danger);}
+.btn-cancel:hover{background:rgba(255,61,87,.25);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#00c4a0);color:#001a12;padding:10px 20px;}
+.btn-primary:hover{filter:brightness(1.08);}
+
+/* FILTERS */
+.filters{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+input,select{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:.2s;}
+input:focus,select:focus{border-color:var(--accent);}
+input::placeholder{color:var(--text2);}
+select option{background:var(--surface);}
+
+/* SCAN PAGE */
+.scan-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;max-width:540px;}
+.scan-row{display:flex;gap:10px;margin-bottom:16px;}
+.scan-row input{flex:1;}
+.scan-result{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:16px;display:none;animation:fadeUp .3s ease;}
+.scan-result.show{display:block;}
+.scan-ok{color:var(--accent);font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:14px;}
+.scan-err{color:var(--danger);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;}
+.sdet{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.sdet:last-child{border-bottom:none;}
+.sdk{color:var(--text2);}
+
+/* REVENUE BOXES */
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:480px;margin-bottom:24px;}
+.rev-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;}
+.rev-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:10px;}
+.rev-val{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:var(--accent);}
+
+/* CHART BARS */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px;}
+.chart-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:18px;}
+.bars{display:flex;align-items:flex-end;gap:10px;height:130px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.bar-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.bar{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(to top,var(--accent),var(--accent2));min-height:4px;transition:height .5s;}
+.bar-val{font-size:10px;color:var(--accent);font-weight:700;}
+.bar-lbl{font-size:9px;color:var(--text2);white-space:nowrap;}
+
+/* BOX STATUS */
+.boxes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:24px;}
+.box-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:.2s;}
+.box-card.avail{border-color:rgba(0,229,184,.3);}
+.box-card.busy{border-color:rgba(255,171,0,.3);}
+.box-card.offline{border-color:var(--border);opacity:.5;}
+.box-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:6px;}
+.box-status{font-size:11px;font-weight:600;}
+.box-status.ok{color:var(--accent);}
+.box-status.busy{color:var(--warning);}
+.box-status.off{color:var(--text2);}
+
+/* MSG */
+.msg{padding:10px 14px;border-radius:9px;font-size:13px;margin-bottom:14px;}
+.msg.err{background:rgba(255,61,87,.12);border:1px solid rgba(255,61,87,.25);color:#ff7087;}
+.msg.ok{background:rgba(0,229,184,.1);border:1px solid rgba(0,229,184,.25);color:var(--accent);}
+
+/* LOADING */
+.loading{display:flex;gap:7px;justify-content:center;padding:40px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bop .7s infinite alternate;}
+.dot:nth-child(2){animation-delay:.18s;}.dot:nth-child(3){animation-delay:.36s;}
+@keyframes bop{to{transform:translateY(-12px);opacity:.3;}}
+.empty{text-align:center;padding:40px;color:var(--text2);}
+
+@media(max-width:768px){.sidebar{display:none;}.main{padding:16px;}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="bolt">⚡</div>
+    <div class="brand">EV<em>Charge</em> <span style="color:var(--text2);font-weight:400;font-size:14px">Admin</span></div>
+  </div>
+  <div class="nav-station" id="stationName">Station: <strong>Loading...</strong></div>
+  <div class="nav-admin"><div class="nav-av" id="adminAvatar">A</div><span id="adminName">Admin</span></div>
+  <button class="btn-out" onclick="logout()">Logout</button>
+</nav>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="si-sec">Overview</div>
+    <div class="si-item active" onclick="nav(this,'pgDash')"><span class="si-icon">📊</span>Dashboard</div>
+    <div class="si-item" onclick="nav(this,'pgBoxes')"><span class="si-icon">🔌</span>Charging Boxes</div>
+    <div class="si-sec">Manage</div>
+    <div class="si-item" onclick="nav(this,'pgBookings')"><span class="si-icon">📋</span>Bookings<span class="si-badge" id="bookingBadge">0</span></div>
+    <div class="si-item" onclick="nav(this,'pgScan')"><span class="si-icon">📷</span>Scan QR</div>
+    <div class="si-sec">Finance</div>
+    <div class="si-item" onclick="nav(this,'pgRevenue')"><span class="si-icon">💰</span>Revenue</div>
+    <div class="si-item" onclick="nav(this,'pgReport')"><span class="si-icon">📈</span>Reports</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="pgDash">
+      <div class="ph"><div class="pt">Dashboard</div><div class="ps" id="dashboardSubtitle">Real-time overview</div></div>
+      <div class="kpi-row" id="dashboardKPI">
+        <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Booking ID</th><th>Customer</th><th>Date</th><th>Time</th><th>Box</th><th>Cost</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="dashTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── CHARGING BOXES ── -->
+    <div class="page" id="pgBoxes">
+      <div class="ph"><div class="pt">Charging Boxes</div><div class="ps" id="boxesSubtitle"></div></div>
+      <div class="loading" id="boxesLoading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="boxes-grid" id="boxGrid"></div>
+    </div>
+
+    <!-- ── BOOKINGS ── -->
+    <div class="page" id="pgBookings">
+      <div class="ph"><div class="pt">Booking Management</div><div class="ps">View, filter, and update all station bookings</div></div>
+      <div class="filters">
+        <input type="date" id="filterDate" onchange="renderBookings()"/>
+        <select id="filterStatus" onchange="renderBookings()">
+          <option value="">All Statuses</option>
+          <option value="Booked">Booked</option>
+          <option value="CheckedIn">Checked In</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <button class="btn btn-primary" onclick="renderBookings()">🔄 Refresh</button>
+      </div>
+      <div class="loading" id="bookingsLoading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Booking ID</th><th>Customer</th><th>Phone</th><th>Date</th><th>Time</th><th>Box</th><th>Cost</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="bookTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SCAN QR ── -->
+    <div class="page" id="pgScan">
+      <div class="ph"><div class="pt">Scan QR Code</div><div class="ps">Enter booking ID to check-in a customer</div></div>
+      <div class="scan-card">
+        <div id="scanMsg"></div>
+        <div class="scan-row">
+          <input id="scanInput" placeholder="Enter Booking ID (e.g. BK-A1B2C3)"/>
+          <button class="btn btn-primary" onclick="doScan()">Check-In</button>
+        </div>
+        <div class="scan-result" id="scanResult"></div>
+      </div>
+    </div>
+
+    <!-- ── REVENUE ── -->
+    <div class="page" id="pgRevenue">
+      <div class="ph"><div class="pt">Revenue Monitor</div><div class="ps" id="revenueSubtitle"></div></div>
+      <div class="loading" id="revenueLoading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="rev-grid" id="revenueGrid"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Payment ID</th><th>Booking ID</th><th>Customer</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
+          <tbody id="revenueTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── REPORTS ── -->
+    <div class="page" id="pgReport">
+      <div class="ph"><div class="pt">Station Reports</div><div class="ps">Booking & revenue analytics</div></div>
+      <div class="loading" id="reportLoading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="kpi-row" id="reportKPI"></div>
+      <div class="chart-wrap">
+        <div class="chart-title">📊 Revenue by Day (Last 7 Days)</div>
+        <div class="bars" id="rptBars"></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">🕐 Bookings by Status</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap" id="statusBreakdown"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// === CONFIGURATION ===
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxjifBEB6MwNpdVmM6xjTdNa6ACZBoHqNEkBnSlj4buCfJuwtkXgivtPMLnqy3I5q_q/exec';
+
+// Global state
+let currentAdmin = null;
+let currentStation = null;
+let stationBoxes = [];
+let allBookings = [];
+
+// ──────────────────────────────────────────────────────
+// API CALLS
+// ──────────────────────────────────────────────────────
+async function callApi(action, data = {}) {
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, data })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    return { success: false, message: 'Network error: ' + error.message };
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// AUTH / LOGIN
+// ──────────────────────────────────────────────────────
+async function doAdminLogin() {
+  // Check if we have saved admin
+  const saved = localStorage.getItem('evAdmin');
+  if (saved) {
+    try {
+      currentAdmin = JSON.parse(saved);
+      await loadAdminData();
+      return;
+    } catch (e) {
+      localStorage.removeItem('evAdmin');
+    }
+  }
+  
+  // For demo, use default admin
+  const result = await callApi('adminSignIn', {
+    email: 'admin@boleev.com',
+    password: 'Admin@123'
+  });
+  
+  if (result.success) {
+    currentAdmin = result.user;
+    localStorage.setItem('evAdmin', JSON.stringify(currentAdmin));
+    await loadAdminData();
+  } else {
+    alert('Admin login failed: ' + result.message);
+    window.location.href = 'index.html';
+  }
+}
+
+async function loadAdminData() {
+  document.getElementById('adminName').textContent = currentAdmin.FullName || 'Admin';
+  document.getElementById('adminAvatar').textContent = (currentAdmin.FullName || 'A')[0];
+  
+  // Load station data
+  const stationResult = await callApi('getAdminStation', { adminId: currentAdmin.AdminID });
+  if (stationResult.success) {
+    currentStation = stationResult.station;
+    stationBoxes = stationResult.boxes || [];
+    document.getElementById('stationName').innerHTML = `Station: <strong>${currentStation.StationName || 'Unknown'}</strong>`;
+    document.getElementById('dashboardSubtitle').textContent = `Real-time overview — ${currentStation.StationName || ''}`;
+    document.getElementById('boxesSubtitle').textContent = `${currentStation.StationName || ''} — ${currentStation.TotalBoxes || 0} total boxes`;
+    document.getElementById('revenueSubtitle').textContent = `Daily and total earnings for ${currentStation.StationName || ''}`;
+  }
+  
+  await loadDashboard();
+  await loadBoxes();
+  await loadBookings();
+  await loadRevenue();
+  await loadReport();
+}
+
+// ──────────────────────────────────────────────────────
+// DASHBOARD
+// ──────────────────────────────────────────────────────
+async function loadDashboard() {
+  if (!currentAdmin) return;
+  
+  // Load bookings for stats
+  const bookingsResult = await callApi('getAdminBookings', { adminId: currentAdmin.AdminID });
+  const revenueResult = await callApi('getAdminRevenue', { adminId: currentAdmin.AdminID });
+  
+  if (bookingsResult.success && revenueResult.success) {
+    allBookings = bookingsResult.bookings || [];
+    
+    const total = allBookings.length;
+    const today = new Date().toISOString().split('T')[0];
+    const todayCount = allBookings.filter(b => b.BookingDate === today).length;
+    const checkedIn = allBookings.filter(b => b.Status === 'CheckedIn').length;
+    const completed = allBookings.filter(b => b.Status === 'Completed').length;
+    
+    document.getElementById('dashboardKPI').innerHTML = `
+      <div class="kpi"><div class="kpi-lbl">Total Bookings</div><div class="kpi-val">${total}</div><div class="kpi-ico">📋</div></div>
+      <div class="kpi"><div class="kpi-lbl">Today's Revenue</div><div class="kpi-val" style="font-size:22px">ETB ${revenueResult.dailyTotal || 0}</div><div class="kpi-ico">💰</div></div>
+      <div class="kpi"><div class="kpi-lbl">Checked-In</div><div class="kpi-val">${checkedIn}</div><div class="kpi-ico">✅</div></div>
+      <div class="kpi"><div class="kpi-lbl">Completed</div><div class="kpi-val">${completed}</div><div class="kpi-ico">🔌</div></div>
+    `;
+    
+    document.getElementById('bookingBadge').textContent = total;
+    renderDashTable();
+  }
+}
+async function testConnection() {
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'customerSignIn', 
+        data: { 
+          email: 'test@example.com', 
+          password: 'test' 
+        } 
+      })
+    });
+    const text = await response.text();
+    console.log('Raw response:', text);
+    alert('Connection test completed. Check console for results.');
+  } catch (error) {
+    console.error('Test failed:', error);
+    alert('Connection test failed: ' + error.message);
+  }
+}
+
+// Add a test button to your HTML temporarily
+// <button onclick="testConnection()">Test API Connection</button>
+function renderDashTable() {
+  const tbody = document.getElementById('dashTbody');
+  const recent = allBookings.slice(0, 8);
+  
+  if (recent.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No bookings found</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = '';
+  recent.forEach(b => {
+    tbody.innerHTML += `<tr>
+      <td class="mono">${b.BookingID || ''}</td>
+      <td>${b.CustomerName || ''}</td>
+      <td>${b.BookingDate || ''}</td>
+      <td>${b.BookingTime || ''}</td>
+      <td style="text-align:center">Box ${b.BoxNumber || ''}</td>
+      <td>ETB ${b.TotalCost || 0}</td>
+      <td><span class="pill pill-${b.Status || 'Pending'}">${b.Status || 'Pending'}</span></td>
+      <td style="display:flex;gap:6px">
+        ${b.Status === 'Booked' ? `<button class="btn btn-check" onclick="updateStatus('${b.BookingID}','CheckedIn')">Check-In</button>` : ''}
+        ${b.Status === 'CheckedIn' ? `<button class="btn btn-done" onclick="updateStatus('${b.BookingID}','Completed')">Complete</button>` : ''}
+      </td>
+    </tr>`;
+  });
+}
+
+// ──────────────────────────────────────────────────────
+// CHARGING BOXES
+// ──────────────────────────────────────────────────────
+function loadBoxes() {
+  document.getElementById('boxesLoading').style.display = 'none';
+  const g = document.getElementById('boxGrid');
+  
+  if (!stationBoxes || stationBoxes.length === 0) {
+    g.innerHTML = '<div class="empty"><div class="ei">🔌</div><p>No charging boxes found</p></div>';
+    return;
+  }
+  
+  g.innerHTML = '';
+  stationBoxes.forEach(b => {
+    const isBusy = b.Status !== 'Available';
+    g.innerHTML += `
+    <div class="box-card ${isBusy ? 'busy' : 'avail'}">
+      <div class="box-num" style="color:${isBusy ? 'var(--warning)' : 'var(--accent)'}">
+        ${isBusy ? '🔶' : '🟢'} #${b.BoxNumber}
+      </div>
+      <div class="box-status ${isBusy ? 'busy' : 'ok'}">${b.Status || 'Available'}</div>
+    </div>`;
+  });
+}
+
+// ──────────────────────────────────────────────────────
+// BOOKINGS
+// ──────────────────────────────────────────────────────
+async function renderBookings() {
+  document.getElementById('bookingsLoading').style.display = 'flex';
+  
+  const date = document.getElementById('filterDate').value;
+  const status = document.getElementById('filterStatus').value;
+  
+  const result = await callApi('getAdminBookings', {
+    adminId: currentAdmin.AdminID,
+    date: date || undefined,
+    status: status || undefined
+  });
+  
+  document.getElementById('bookingsLoading').style.display = 'none';
+  const tbody = document.getElementById('bookTbody');
+  
+  if (!result.success || !result.bookings || result.bookings.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">No bookings match filter</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = '';
+  result.bookings.forEach(b => {
+    tbody.innerHTML += `<tr>
+      <td class="mono">${b.BookingID}</td>
+      <td><strong>${b.CustomerName || ''}</strong></td>
+      <td>${b.CustomerPhone || ''}</td>
+      <td>${b.BookingDate}</td>
+      <td>${b.BookingTime}</td>
+      <td>Box ${b.BoxNumber}</td>
+      <td>ETB ${b.TotalCost}</td>
+      <td><span class="pill pill-${b.Status}">${b.Status}</span></td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap">
+        ${b.Status === 'Booked' ? `<button class="btn btn-check" onclick="updateStatus('${b.BookingID}','CheckedIn')">Check-In</button>` : ''}
+        ${b.Status === 'CheckedIn' ? `<button class="btn btn-done" onclick="updateStatus('${b.BookingID}','Completed')">Complete</button>` : ''}
+        ${b.Status === 'Booked' ? `<button class="btn btn-cancel" onclick="updateStatus('${b.BookingID}','Cancelled')">Cancel</button>` : ''}
+      </td>
+    </tr>`;
+  });
+}
+
+async function updateStatus(bookingId, newStatus) {
+  if (!confirm(`Change booking ${bookingId} status to ${newStatus}?`)) return;
+  
+  const result = await callApi('updateBookingStatus', {
+    bookingId: bookingId,
+    status: newStatus
+  });
+  
+  if (result.success) {
+    await loadDashboard();
+    await renderBookings();
+  } else {
+    alert('Error: ' + result.message);
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// SCAN QR
+// ──────────────────────────────────────────────────────
+async function doScan() {
+  const id = document.getElementById('scanInput').value.trim();
+  const res = document.getElementById('scanResult');
+  const msgEl = document.getElementById('scanMsg');
+  
+  if (!id) {
+    msgEl.innerHTML = '<div class="msg err">Please enter a Booking ID</div>';
+    res.classList.remove('show');
+    return;
+  }
+  
+  msgEl.innerHTML = '';
+  
+  const result = await callApi('scanQRCode', { bookingId: id });
+  
+  if (!result.success) {
+    res.className = 'scan-result show';
+    res.innerHTML = `<div class="scan-err">❌ ${result.message || 'Booking Not Found'}</div>`;
+    return;
+  }
+  
+  res.className = 'scan-result show';
+  res.innerHTML = `
+    <div class="scan-ok">✅ Customer Checked-In Successfully!</div>
+    <div class="sdet"><span class="sdk">Booking ID</span><span class="mono">${id}</span></div>
+    <div class="sdet"><span class="sdk">Status</span><span><span class="pill pill-CheckedIn">CheckedIn</span></span></div>`;
+  
+  await loadDashboard();
+  await renderBookings();
+}
+
+// ──────────────────────────────────────────────────────
+// REVENUE
+// ──────────────────────────────────────────────────────
+async function loadRevenue() {
+  document.getElementById('revenueLoading').style.display = 'flex';
+  
+  const revenueResult = await callApi('getAdminRevenue', { adminId: currentAdmin.AdminID });
+  const bookingsResult = await callApi('getAdminBookings', { adminId: currentAdmin.AdminID });
+  
+  document.getElementById('revenueLoading').style.display = 'none';
+  
+  if (revenueResult.success) {
+    document.getElementById('revenueGrid').innerHTML = `
+      <div class="rev-box"><div class="rev-lbl">Today's Revenue</div><div class="rev-val">ETB ${revenueResult.dailyTotal || 0}</div></div>
+      <div class="rev-box"><div class="rev-lbl">Total Revenue</div><div class="rev-val" style="font-size:26px">ETB ${revenueResult.totalRevenue || 0}</div></div>
+    `;
+  }
+  
+  // Mock payment data - in real app, you'd have a payments API
+  const tbody = document.getElementById('revenueTbody');
+  if (bookingsResult.success && bookingsResult.bookings) {
+    tbody.innerHTML = bookingsResult.bookings.slice(0, 5).map(b => `
+      <tr>
+        <td class="mono">PAY-${Math.random().toString(36).substring(2,8).toUpperCase()}</td>
+        <td class="mono">${b.BookingID}</td>
+        <td>${b.CustomerName || ''}</td>
+        <td style="color:var(--accent);font-weight:700">ETB ${b.TotalCost}</td>
+        <td>Telebirr</td>
+        <td>${b.BookingDate}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// REPORTS
+// ──────────────────────────────────────────────────────
+async function loadReport() {
+  document.getElementById('reportLoading').style.display = 'flex';
+  
+  const reportResult = await callApi('getAdminReport', { adminId: currentAdmin.AdminID });
+  
+  document.getElementById('reportLoading').style.display = 'none';
+  
+  if (reportResult.success) {
+    const status = reportResult.bookingsByStatus || {};
+    
+    document.getElementById('reportKPI').innerHTML = `
+      <div class="kpi"><div class="kpi-lbl">Total Bookings</div><div class="kpi-val">${reportResult.totalBookings || 0}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Completed</div><div class="kpi-val">${status.Completed || 0}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Cancelled</div><div class="kpi-val">${status.Cancelled || 0}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" style="font-size:18px">ETB ${reportResult.totalRevenue || 0}</div></div>
+    `;
+    
+    document.getElementById('statusBreakdown').innerHTML = `
+      <div style="flex:1;min-width:120px;background:var(--surface2);border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Booked</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#60a5fa">${status.Booked || 0}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--surface2);border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Checked-In</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent)">${status.CheckedIn || 0}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--surface2);border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Completed</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text3)">${status.Completed || 0}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--surface2);border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Cancelled</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--danger)">${status.Cancelled || 0}</div>
+      </div>
+    `;
+    
+    // Mock chart data
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    document.getElementById('rptBars').innerHTML = days.map(d => `
+      <div class="bar-item">
+        <div class="bar-val">ETB ${Math.floor(Math.random()*5+1)}k</div>
+        <div class="bar" style="height:${Math.floor(Math.random()*80+20)}px"></div>
+        <div class="bar-lbl">${d}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────────────────────
+function nav(el, pgId) {
+  document.querySelectorAll('.si-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pgId).classList.add('active');
+  
+  if (pgId === 'pgDash') loadDashboard();
+  if (pgId === 'pgBoxes') loadBoxes();
+  if (pgId === 'pgBookings') renderBookings();
+  if (pgId === 'pgRevenue') loadRevenue();
+  if (pgId === 'pgReport') loadReport();
+}
+
+function logout() {
+  localStorage.removeItem('evAdmin');
+  window.location.href = 'index.html';
+}
+
+// ──────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  doAdminLogin();
+});
+</script>
+</body>
+</html>
