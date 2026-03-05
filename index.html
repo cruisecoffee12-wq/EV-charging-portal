@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EV Charge — Customer Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#07091a;--surface:#0f1628;--surface2:#16203a;--surface3:#1c2b48;
+  --border:#1e3050;--accent:#00e5b8;--accent2:#2979ff;--danger:#ff3d57;
+  --warning:#ffab00;--text:#dde8f5;--text2:#5d7a9e;--text3:#8fa8c8;
+  --radius:14px;--shadow:0 12px 40px rgba(0,0,0,.5);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.bg-mesh::before{content:'';position:absolute;width:800px;height:800px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,184,.08),transparent 70%);top:-150px;left:-150px;animation:d1 20s ease-in-out infinite alternate;}
+.bg-mesh::after{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(41,121,255,.07),transparent 70%);bottom:-100px;right:-100px;animation:d2 16s ease-in-out infinite alternate;}
+@keyframes d1{to{transform:translate(100px,60px);}}
+@keyframes d2{to{transform:translate(-60px,-80px);}}
+
+/* AUTH */
+.auth-wrap{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:50px 44px;width:100%;max-width:460px;box-shadow:var(--shadow);}
+.auth-panel{display:none;animation:fadeUp .3s ease;}
+.auth-panel.show{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.brand{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:36px;}
+.bolt{width:50px;height:50px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:grid;place-items:center;font-size:24px;box-shadow:0 0 24px rgba(0,229,184,.25);}
+.brand-name{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;}
+.brand-name em{color:var(--accent);font-style:normal;}
+h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:5px;}
+.sub{color:var(--text2);font-size:14px;margin-bottom:26px;}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600;margin-bottom:6px;}
+input,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:.2s;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,184,.1);}
+input::placeholder{color:var(--text2);}
+select option{background:var(--surface);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:.2s;letter-spacing:.2px;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#00c4a0);color:#001a12;}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:10px;}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.auth-switch{text-align:center;margin-top:18px;color:var(--text2);font-size:14px;}
+.auth-switch a{color:var(--accent);cursor:pointer;font-weight:600;}
+.msg-box{padding:10px 14px;border-radius:9px;font-size:13px;margin-bottom:14px;display:none;}
+.msg-box.err{background:rgba(255,61,87,.12);border:1px solid rgba(255,61,87,.25);color:#ff7087;display:block;}
+.msg-box.ok{background:rgba(0,229,184,.1);border:1px solid rgba(0,229,184,.25);color:var(--accent);display:block;}
+.demo-tip{background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:9px;padding:10px 14px;font-size:12px;color:var(--accent2);text-align:center;margin-bottom:14px;}
+.role-list{display:flex;flex-direction:column;gap:10px;}
+.role-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.2s;}
+.role-item:hover{border-color:var(--accent);transform:translateX(4px);}
+.role-icon{font-size:24px;}
+.role-info strong{display:block;font-size:14px;font-weight:600;}
+.role-info span{font-size:12px;color:var(--text2);}
+
+/* APP */
+.app{display:none;position:relative;z-index:1;}
+nav{background:rgba(15,22,40,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:66px;display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:100;}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-bolt{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:grid;place-items:center;font-size:18px;}
+.nav-brand{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.nav-brand em{color:var(--accent);font-style:normal;}
+.tabs{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-left:auto;}
+.tab{padding:7px 18px;border-radius:8px;border:none;background:transparent;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:.2s;}
+.tab.active{background:var(--accent);color:#001a12;font-weight:700;}
+.chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:24px;padding:5px 14px 5px 5px;}
+.av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#001a12;}
+.chip-name{font-size:13px;font-weight:500;}
+.logout-btn{background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:8px;transition:.2s;}
+.logout-btn:hover{color:var(--danger);}
+
+.content{padding:32px 28px;max-width:1280px;margin:0 auto;}
+.page{display:none;animation:fadeUp .3s ease;}
+.page.active{display:block;}
+.sec-hd{margin-bottom:28px;}
+.sec-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;}
+.sec-sub{color:var(--text2);font-size:14px;margin-top:4px;}
+
+/* STATION CARDS */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:20px;}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px;position:relative;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s;}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transform:scaleX(0);transform-origin:left;transition:transform .3s;}
+.scard:hover{border-color:rgba(0,229,184,.3);transform:translateY(-3px);box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.scard:hover::before{transform:scaleX(1);}
+.scard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+.scard-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.scard-loc{font-size:12px;color:var(--text2);margin-top:3px;}
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.bdg-ok{background:rgba(0,229,184,.1);color:var(--accent);border:1px solid rgba(0,229,184,.2);}
+.bdg-busy{background:rgba(255,171,0,.1);color:var(--warning);border:1px solid rgba(255,171,0,.2);}
+.bdg-full{background:rgba(255,61,87,.1);color:var(--danger);border:1px solid rgba(255,61,87,.2);}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.ib{background:var(--surface2);border-radius:10px;padding:12px 14px;}
+.ib-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.ib-val{font-size:15px;font-weight:700;}
+.ib-val.g{color:var(--accent);}
+.ib-val.b{color:var(--accent2);}
+.track{height:5px;background:var(--surface3);border-radius:3px;margin-bottom:18px;overflow:hidden;}
+.fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .7s cubic-bezier(.4,0,.2,1);}
+.book-btn{width:100%;padding:13px;border:none;border-radius:11px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:.2s;letter-spacing:.2px;background:linear-gradient(135deg,var(--accent),#00c4a0);color:#001a12;}
+.book-btn:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,184,.3);}
+.book-btn:disabled{background:var(--surface3);color:var(--text2);cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:24px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow);animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes slideUp{from{transform:translateY(30px) scale(.97);opacity:0;}to{transform:none;opacity:1;}}
+.mhd{padding:26px 26px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.mtitle{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;}
+.mx{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;transition:.2s;}
+.mx:hover{background:var(--surface2);}
+.mbody{padding:0 26px 26px;}
+
+/* AVAIL DISPLAY */
+.avail-box{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;margin:14px 0;}
+.avail-n{font-family:'Syne',sans-serif;font-size:56px;font-weight:800;line-height:1;transition:.3s;}
+.avail-n.ok{color:var(--accent);}
+.avail-n.warn{color:var(--warning);}
+.avail-n.bad{color:var(--danger);}
+.avail-msg{font-size:13px;color:var(--text3);margin-top:6px;}
+
+/* COST ROW */
+.cost-row{background:rgba(0,229,184,.07);border:1px solid rgba(0,229,184,.18);border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.cost-lbl{font-size:13px;color:var(--text3);}
+.cost-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--accent);}
+
+/* PAYMENT METHODS */
+.pm-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.pm{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:.2s;}
+.pm:hover{border-color:var(--surface3);}
+.pm.sel{border-color:var(--accent);background:rgba(0,229,184,.07);}
+.pm-icon{font-size:28px;margin-bottom:6px;}
+.pm-lbl{font-size:12px;font-weight:600;}
+
+/* CONFIRM */
+.confirm{text-align:center;padding:8px 0;}
+.confirm-emoji{font-size:72px;animation:pop .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pop{from{transform:scale(0) rotate(-10deg);}to{transform:scale(1) rotate(0);}}
+.confirm-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin:12px 0 6px;}
+.confirm-sub{color:var(--text2);font-size:14px;margin-bottom:20px;}
+.bk-id-box{background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:18px;}
+.bk-id-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:4px;}
+.bk-id-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);letter-spacing:1px;}
+#qrcode{display:flex;justify-content:center;margin:16px 0;}
+#qrcode canvas,#qrcode img{border-radius:14px;border:5px solid var(--surface2);}
+.det-list{background:var(--surface2);border-radius:12px;padding:14px;text-align:left;margin-bottom:16px;}
+.dr{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.dr:last-child{border-bottom:none;}
+.dk{color:var(--text2);}
+.dv{font-weight:600;}
+
+/* MY BOOKINGS */
+.bklist{display:flex;flex-direction:column;gap:12px;}
+.bk{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;transition:.2s;}
+.bk:hover{border-color:var(--surface3);}
+.bk-id{font-size:11px;font-family:monospace;color:var(--text2);margin-bottom:4px;}
+.bk-stn{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:7px;}
+.bk-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--text3);}
+.pill{display:inline-block;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.pill-Booked{background:rgba(41,121,255,.15);color:#60a5fa;border:1px solid rgba(41,121,255,.3);}
+.pill-CheckedIn{background:rgba(0,229,184,.15);color:var(--accent);border:1px solid rgba(0,229,184,.3);}
+.pill-Completed{background:rgba(93,122,158,.1);color:var(--text3);border:1px solid var(--border);}
+.pill-Cancelled{background:rgba(255,61,87,.1);color:var(--danger);border:1px solid rgba(255,61,87,.3);}
+
+/* LOADING */
+.loading{display:flex;gap:7px;justify-content:center;padding:50px;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:bop .7s infinite alternate;}
+.dot:nth-child(2){animation-delay:.18s;}
+.dot:nth-child(3){animation-delay:.36s;}
+@keyframes bop{to{transform:translateY(-14px);opacity:.3;}}
+.empty{text-align:center;padding:60px;color:var(--text2);}
+.empty .ei{font-size:52px;margin-bottom:12px;}
+
+@media(max-width:640px){
+  .fr,.pm-wrap{grid-template-columns:1fr;}
+  .grid{grid-template-columns:1fr;}
+  nav{padding:0 14px;gap:10px;}
+  .content{padding:20px 14px;}
+  .auth-card{padding:36px 22px;}
+  .mhd,.mbody{padding-left:18px;padding-right:18px;}
+}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<!-- ═══════════════════════ AUTH ═══════════════════════ -->
+<div class="auth-wrap" id="authWrap">
+  <div class="auth-card">
+
+    <!-- SIGN IN -->
+    <div class="auth-panel show" id="pSignIn">
+      <div class="brand"><div class="bolt">⚡</div><div class="brand-name">EV<em>Charge</em></div></div>
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to your EV driver account</p>
+      <div id="siMsg" class="msg-box"></div>
+      <div class="fg"><label>Email</label><input id="siEmail" type="email" placeholder="driver@example.com" value="abebe@gmail.com"/></div>
+      <div class="fg"><label>Password</label><input id="siPass" type="password" placeholder="••••••••" value="demo1234"/></div>
+      <button class="btn btn-primary" onclick="doSignIn()">Sign In →</button>
+      <div class="auth-switch">New here? <a onclick="show('pSignUp')">Create account</a></div>
+      <div class="auth-switch" style="margin-top:8px"><a onclick="show('pRoles')">Admin / Owner login →</a></div>
+    </div>
+
+    <!-- SIGN UP -->
+    <div class="auth-panel" id="pSignUp">
+      <div class="brand"><div class="bolt">⚡</div><div class="brand-name">EV<em>Charge</em></div></div>
+      <h2>Create account</h2>
+      <p class="sub">Register as an EV driver</p>
+      <div id="suMsg" class="msg-box"></div>
+      <div class="fr">
+        <div class="fg"><label>Full Name</label><input id="suName" placeholder="Abebe Girma"/></div>
+        <div class="fg"><label>Phone</label><input id="suPhone" placeholder="+251911..."/></div>
+      </div>
+      <div class="fg"><label>Email</label><input id="suEmail" type="email" placeholder="you@email.com"/></div>
+      <div class="fr">
+        <div class="fg"><label>Vehicle Model</label><input id="suVehicle" placeholder="Tesla Model 3"/></div>
+        <div class="fg"><label>Battery (kWh)</label><input id="suBattery" type="number" placeholder="75"/></div>
+      </div>
+      <div class="fg"><label>License Plate</label><input id="suPlate" placeholder="AA-12345"/></div>
+      <div class="fg"><label>Password</label><input id="suPass" type="password" placeholder="Min 8 characters"/></div>
+      <button class="btn btn-primary" onclick="doSignUp()">Create Account →</button>
+      <div class="auth-switch">Have account? <a onclick="show('pSignIn')">Sign in</a></div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="auth-panel" id="pRoles">
+      <div class="brand"><div class="bolt">⚡</div><div class="brand-name">EV<em>Charge</em></div></div>
+      <h2>Select your role</h2>
+      <p class="sub" style="margin-bottom:24px">Choose your access level to continue</p>
+      <div class="role-list">
+        <div class="role-item" onclick="window.location.href='admin.html'">
+          <span class="role-icon">🔧</span>
+          <div class="role-info"><strong>Station Admin</strong><span>Manage your assigned station</span></div>
+          <span style="margin-left:auto;color:var(--text2)">→</span>
+        </div>
+        <div class="role-item" onclick="window.location.href='owner.html'">
+          <span class="role-icon">👑</span>
+          <div class="role-info"><strong>Owner / Super Admin</strong><span>Full system control</span></div>
+          <span style="margin-left:auto;color:var(--text2)">→</span>
+        </div>
+      </div>
+      <div class="auth-switch"><a onclick="show('pSignIn')">← Back to customer login</a></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════ APP ═══════════════════════ -->
+<div class="app" id="appWrap">
+  <nav>
+    <a class="nav-logo" href="#">
+      <div class="nav-bolt">⚡</div>
+      <div class="nav-brand">EV<em>Charge</em></div>
+    </a>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('pgStations',this)">⚡ Stations</button>
+      <button class="tab" onclick="switchTab('pgBookings',this);loadMyBk()">📋 My Bookings</button>
+    </div>
+    <div class="chip">
+      <div class="av" id="navAv">A</div>
+      <span class="chip-name" id="navName">Driver</span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="content">
+    <!-- STATIONS -->
+    <div class="page active" id="pgStations">
+      <div class="sec-hd">
+        <div class="sec-title">Charging Stations</div>
+        <div class="sec-sub">Real-time availability across all stations</div>
+      </div>
+      <div class="loading" id="stationsLoading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="grid" id="stGrid"></div>
+    </div>
+
+    <!-- MY BOOKINGS -->
+    <div class="page" id="pgBookings">
+      <div class="sec-hd">
+        <div class="sec-title">My Bookings</div>
+        <div class="sec-sub">Your charging sessions — past and upcoming</div>
+      </div>
+      <div class="loading" id="bkLoad"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="bklist" id="bkList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ BOOKING MODAL ═══════════════════════ -->
+<div class="overlay" id="bookOverlay">
+  <div class="modal">
+    <div class="mhd">
+      <div class="mtitle" id="mTitle">Book Charging Slot</div>
+      <button class="mx" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+
+      <!-- STEP 1 -->
+      <div id="step1">
+        <div id="bkMsg" class="msg-box"></div>
+        <div class="fg"><label>Date</label><input type="date" id="bkDate" onchange="checkAvail()"/></div>
+        <div class="fg"><label>Time Slot</label>
+          <select id="bkTime" onchange="checkAvail()">
+            <option value="">— Select Time —</option>
+            <option value="06:00 AM">06:00 AM</option><option value="07:00 AM">07:00 AM</option><option value="08:00 AM">08:00 AM</option>
+            <option value="09:00 AM">09:00 AM</option><option value="10:00 AM">10:00 AM</option><option value="11:00 AM">11:00 AM</option>
+            <option value="12:00 PM">12:00 PM</option><option value="01:00 PM">01:00 PM</option><option value="02:00 PM">02:00 PM</option>
+            <option value="03:00 PM">03:00 PM</option><option value="04:00 PM">04:00 PM</option><option value="05:00 PM">05:00 PM</option>
+            <option value="06:00 PM">06:00 PM</option><option value="07:00 PM">07:00 PM</option><option value="08:00 PM">08:00 PM</option>
+            <option value="09:00 PM">09:00 PM</option>
+          </select>
+        </div>
+        <div class="fg"><label>Duration</label>
+          <select id="bkDur" onchange="updateCost()">
+            <option value="1">1 Hour</option><option value="2">2 Hours</option>
+            <option value="3">3 Hours</option><option value="4">4 Hours</option>
+          </select>
+        </div>
+        <div class="avail-box" id="availBox" style="display:none">
+          <div class="avail-n ok" id="availN">4</div>
+          <div class="avail-msg" id="availMsg">Charging Boxes Available</div>
+        </div>
+        <div class="cost-row">
+          <span class="cost-lbl">Estimated Cost</span>
+          <span class="cost-val" id="costVal">ETB 0</span>
+        </div>
+        <div class="fg"><label>Payment Method</label>
+          <div class="pm-wrap">
+            <div class="pm sel" id="pm-Telebirr" onclick="selPay('Telebirr')">
+              <div class="pm-icon">📱</div><div class="pm-lbl">Telebirr</div>
+            </div>
+            <div class="pm" id="pm-Manual" onclick="selPay('Manual')">
+              <div class="pm-icon">💵</div><div class="pm-lbl">Pay at Station</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="doBook()">⚡ Confirm & Pay</button>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step2" style="display:none">
+        <div class="confirm">
+          <div class="confirm-emoji">✅</div>
+          <div class="confirm-title">Booking Confirmed!</div>
+          <div class="confirm-sub">Show this QR code when you arrive at the station</div>
+          <div class="bk-id-box">
+            <div class="bk-id-lbl">Booking ID</div>
+            <div class="bk-id-val" id="confId">—</div>
+          </div>
+          <div id="qrcode"></div>
+          <div class="det-list" id="confDets"></div>
+          <button class="btn btn-primary" onclick="dlQR()">⬇ Download QR Code</button>
+          <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal();switchTab('pgBookings',document.querySelectorAll('.tab')[1]);loadMyBk()">View My Bookings</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// === CONFIGURATION ===
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxjifBEB6MwNpdVmM6xjTdNa6ACZBoHqNEkBnSlj4buCfJuwtkXgivtPMLnqy3I5q_q/exec';
+
+// Global state
+let user = null;
+let currentCustomer = null;
+let selSt = null;
+let selPm = 'Telebirr';
+let stations = [];
+let myBookings = [];
+
+// ──────────────────────────────────────────────────────
+// AUTH NAVIGATION
+// ──────────────────────────────────────────────────────
+function show(id){
+  document.querySelectorAll('.auth-panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+
+function setMsg(id,txt,type='err'){
+  const el=document.getElementById(id);el.textContent=txt;el.className='msg-box '+type;
+}
+async function testConnection() {
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'customerSignIn', 
+        data: { 
+          email: 'test@example.com', 
+          password: 'test' 
+        } 
+      })
+    });
+    const text = await response.text();
+    console.log('Raw response:', text);
+    alert('Connection test completed. Check console for results.');
+  } catch (error) {
+    console.error('Test failed:', error);
+    alert('Connection test failed: ' + error.message);
+  }
+}
+
+// Add a test button to your HTML temporarily
+// <button onclick="testConnection()">Test API Connection</button>
+// ──────────────────────────────────────────────────────
+// API CALLS
+// ──────────────────────────────────────────────────────
+async function callApi(action, data = {}) {
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, data })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    return { success: false, message: 'Network error: ' + error.message };
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// AUTH
+// ──────────────────────────────────────────────────────
+async function doSignIn() {
+  const email = document.getElementById('siEmail').value.trim();
+  const password = document.getElementById('siPass').value;
+  
+  if (!email || !password) {
+    setMsg('siMsg', 'Please enter your email and password.');
+    return;
+  }
+  
+  setMsg('siMsg', 'Signing in...', 'ok');
+  
+  const result = await callApi('customerSignIn', { email, password });
+  
+  if (result.success) {
+    currentCustomer = result.user;
+    user = { name: result.user.FullName || result.user.Email.split('@')[0], battery: result.user.BatteryCapacity || 75 };
+    await loadStations();
+    enterApp();
+  } else {
+    setMsg('siMsg', result.message || 'Invalid credentials');
+  }
+}
+
+async function doSignUp() {
+  const name = document.getElementById('suName').value.trim();
+  const phone = document.getElementById('suPhone').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const vehicle = document.getElementById('suVehicle').value.trim();
+  const battery = document.getElementById('suBattery').value;
+  const plate = document.getElementById('suPlate').value.trim();
+  const password = document.getElementById('suPass').value;
+  
+  if (!name || !email || !password) {
+    setMsg('suMsg', 'Please fill all required fields.');
+    return;
+  }
+  
+  setMsg('suMsg', 'Creating account...', 'ok');
+  
+  const result = await callApi('customerSignUp', {
+    fullName: name,
+    phone: phone,
+    email: email,
+    vehicleModel: vehicle,
+    batteryCapacity: battery || 75,
+    licensePlate: plate,
+    password: password
+  });
+  
+  if (result.success) {
+    setMsg('suMsg', 'Account created! Please sign in.', 'ok');
+    setTimeout(() => show('pSignIn'), 1500);
+  } else {
+    setMsg('suMsg', result.message || 'Registration failed');
+  }
+}
+
+function enterApp() {
+  document.getElementById('authWrap').style.display = 'none';
+  document.getElementById('appWrap').style.display = 'block';
+  document.getElementById('navAv').textContent = (user.name || 'D')[0].toUpperCase();
+  document.getElementById('navName').textContent = user.name.split(' ')[0];
+  renderStations();
+}
+
+function logout() {
+  currentCustomer = null;
+  user = null;
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('authWrap').style.display = 'flex';
+  show('pSignIn');
+}
+
+// ──────────────────────────────────────────────────────
+// STATIONS
+// ──────────────────────────────────────────────────────
+async function loadStations() {
+  const result = await callApi('getStations');
+  if (result.success) {
+    stations = result.stations;
+    renderStations();
+  }
+  document.getElementById('stationsLoading').style.display = 'none';
+}
+
+function renderStations() {
+  const g = document.getElementById('stGrid');
+  if (!stations || stations.length === 0) {
+    g.innerHTML = '<div class="empty"><div class="ei">⚡</div><p>No stations available</p></div>';
+    return;
+  }
+  
+  g.innerHTML = '';
+  stations.forEach(st => {
+    const total = Number(st.TotalBoxes) || 0;
+    const avail = Number(st.AvailableBoxes) || 0;
+    const pct = total > 0 ? Math.round((avail / total) * 100) : 0;
+    const full = avail === 0;
+    const busy = avail <= 2 && avail > 0;
+    
+    let badge = '<span class="bdg bdg-ok">● Available</span>';
+    if (full) badge = '<span class="bdg bdg-full">● Fully Booked</span>';
+    else if (busy) badge = '<span class="bdg bdg-busy">● Busy</span>';
+    
+    g.innerHTML += `
+    <div class="scard">
+      <div class="scard-top">
+        <div><div class="scard-name">${st.StationName || 'Unknown'}</div><div class="scard-loc">📍 ${st.Location || ''}</div></div>
+        ${badge}
+      </div>
+      <div class="info-grid">
+        <div class="ib"><div class="ib-lbl">⚡ Available</div><div class="ib-val g">${avail} / ${total}</div></div>
+        <div class="ib"><div class="ib-lbl">💰 Price / kWh</div><div class="ib-val b">ETB ${st.PricePerKWh || 0}</div></div>
+        <div class="ib"><div class="ib-lbl">🕐 Hours</div><div class="ib-val" style="font-size:13px">${st.OpenHours || '24/7'}</div></div>
+        <div class="ib"><div class="ib-lbl">🔌 Total Boxes</div><div class="ib-val">${total}</div></div>
+      </div>
+      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+      <button class="book-btn" ${full ? 'disabled' : ''} onclick="openBook('${st.StationID}')">
+        ${full ? '❌ Fully Booked' : '⚡ Book Now'}
+      </button>
+    </div>`;
+  });
+}
+
+// ──────────────────────────────────────────────────────
+// BOOKING FLOW
+// ──────────────────────────────────────────────────────
+function openBook(stId) {
+  const st = stations.find(s => s.StationID === stId);
+  if (!st || Number(st.AvailableBoxes) === 0) return;
+  selSt = st;
+  
+  document.getElementById('mTitle').textContent = 'Book — ' + (st.StationName || 'Station');
+  document.getElementById('step1').style.display = '';
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('availBox').style.display = 'none';
+  document.getElementById('bkMsg').className = 'msg-box';
+  document.getElementById('bkTime').value = '';
+  document.getElementById('bkDur').value = '1';
+  
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bkDate').min = today;
+  document.getElementById('bkDate').value = today;
+  
+  updateCost();
+  document.getElementById('bookOverlay').classList.add('open');
+}
+
+let avTimer = null;
+async function checkAvail() {
+  const date = document.getElementById('bkDate').value;
+  const time = document.getElementById('bkTime').value;
+  
+  if (!time || !selSt) return;
+  
+  clearTimeout(avTimer);
+  avTimer = setTimeout(async () => {
+    const result = await callApi('getStationAvailability', {
+      stationId: selSt.StationID,
+      date: date,
+      time: time
+    });
+    
+    const box = document.getElementById('availBox');
+    const num = document.getElementById('availN');
+    const msg = document.getElementById('availMsg');
+    
+    if (result.success) {
+      const avail = result.available || 0;
+      box.style.display = 'block';
+      num.textContent = avail;
+      
+      if (avail === 0) {
+        num.className = 'avail-n bad';
+        msg.textContent = '❌ Fully Booked at ' + time;
+      } else if (avail <= 2) {
+        num.className = 'avail-n warn';
+        msg.textContent = avail + ' Charging Box' + (avail > 1 ? 'es' : '') + ' Available at ' + time;
+      } else {
+        num.className = 'avail-n ok';
+        msg.textContent = avail + ' Charging Boxes Available at ' + time;
+      }
+    }
+    updateCost();
+  }, 400);
+}
+
+function updateCost() {
+  if (!selSt) return;
+  const dur = Number(document.getElementById('bkDur').value) || 1;
+  const price = Number(selSt.PricePerKWh) || 15;
+  const battery = user?.battery || 75;
+  const cost = (price * dur * battery).toFixed(0);
+  document.getElementById('costVal').textContent = 'ETB ' + cost;
+}
+
+function selPay(m) {
+  selPm = m;
+  document.querySelectorAll('.pm').forEach(b => b.classList.remove('sel'));
+  document.getElementById('pm-' + m).classList.add('sel');
+}
+
+async function doBook() {
+  const date = document.getElementById('bkDate').value;
+  const time = document.getElementById('bkTime').value;
+  const dur = document.getElementById('bkDur').value;
+  
+  if (!date || !time) {
+    const el = document.getElementById('bkMsg');
+    el.textContent = 'Please select a date and time slot.';
+    el.className = 'msg-box err';
+    return;
+  }
+  
+  if (!currentCustomer) {
+    alert('Please sign in first');
+    closeModal();
+    return;
+  }
+  
+  // Create booking
+  const result = await callApi('createBooking', {
+    customerId: currentCustomer.CustomerID,
+    stationId: selSt.StationID,
+    date: date,
+    time: time,
+    duration: dur,
+    batteryCapacity: user?.battery || 75
+  });
+  
+  if (!result.success) {
+    const el = document.getElementById('bkMsg');
+    el.textContent = result.message || 'Booking failed';
+    el.className = 'msg-box err';
+    return;
+  }
+  
+  // Process payment
+  const paymentResult = await callApi('processPayment', {
+    bookingId: result.bookingId,
+    customerId: currentCustomer.CustomerID,
+    amount: result.totalCost,
+    method: selPm
+  });
+  
+  if (!paymentResult.success) {
+    alert('Booking created but payment failed: ' + paymentResult.message);
+  }
+  
+  // Show confirmation
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = '';
+  document.getElementById('confId').textContent = result.bookingId;
+  
+  // Generate QR code
+  document.getElementById('qrcode').innerHTML = '';
+  new QRCode(document.getElementById('qrcode'), {
+    text: JSON.stringify({
+      bookingId: result.bookingId,
+      stationId: selSt.StationID,
+      date: date,
+      time: time,
+      boxNumber: result.boxNumber
+    }),
+    width: 200,
+    height: 200,
+    colorDark: '#00e5b8',
+    colorLight: '#0f1628'
+  });
+  
+  document.getElementById('confDets').innerHTML = `
+    <div class="dr"><span class="dk">Station</span><span class="dv">${selSt.StationName}</span></div>
+    <div class="dr"><span class="dk">Date</span><span class="dv">${date}</span></div>
+    <div class="dr"><span class="dk">Time</span><span class="dv">${time}</span></div>
+    <div class="dr"><span class="dk">Duration</span><span class="dv">${dur} hr(s)</span></div>
+    <div class="dr"><span class="dk">Charging Box</span><span class="dv">#${result.boxNumber}</span></div>
+    <div class="dr"><span class="dk">Amount Paid</span><span class="dv" style="color:var(--accent)">ETB ${result.totalCost}</span></div>
+    <div class="dr"><span class="dk">Payment</span><span class="dv">${selPm}</span></div>`;
+  
+  await loadMyBk();
+}
+
+function dlQR() {
+  const c = document.querySelector('#qrcode canvas');
+  if (!c) return;
+  const a = document.createElement('a');
+  a.href = c.toDataURL();
+  a.download = 'booking-qr.png';
+  a.click();
+}
+
+// ──────────────────────────────────────────────────────
+// MY BOOKINGS
+// ──────────────────────────────────────────────────────
+async function loadMyBk() {
+  if (!currentCustomer) return;
+  
+  document.getElementById('bkLoad').style.display = 'flex';
+  document.getElementById('bkList').innerHTML = '';
+  
+  const result = await callApi('getCustomerBookings', {
+    customerId: currentCustomer.CustomerID
+  });
+  
+  document.getElementById('bkLoad').style.display = 'none';
+  
+  if (!result.success || !result.bookings || result.bookings.length === 0) {
+    document.getElementById('bkList').innerHTML = '<div class="empty"><div class="ei">📋</div><p>No bookings yet. Book a charging slot to get started!</p></div>';
+    return;
+  }
+  
+  const list = document.getElementById('bkList');
+  list.innerHTML = '';
+  result.bookings.forEach(b => {
+    list.innerHTML += `
+    <div class="bk">
+      <div>
+        <div class="bk-id">${b.BookingID}</div>
+        <div class="bk-stn">${b.StationName}</div>
+        <div class="bk-meta">
+          <span>📅 ${b.BookingDate}</span><span>🕐 ${b.BookingTime}</span>
+          <span>🔌 Box #${b.BoxNumber}</span><span>💰 ETB ${b.TotalCost}</span>
+        </div>
+      </div>
+      <span class="pill pill-${b.Status}">${b.Status}</span>
+    </div>`;
+  });
+}
+
+// ──────────────────────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────────────────────
+function switchTab(pgId, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pgId).classList.add('active');
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('bookOverlay').classList.remove('open');
+}
+
+// ──────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bkDate').value = today;
+  document.getElementById('bkDate').min = today;
+  
+  // Check if user is already logged in (optional)
+  if (localStorage.getItem('evCustomer')) {
+    try {
+      currentCustomer = JSON.parse(localStorage.getItem('evCustomer'));
+      user = { name: currentCustomer.FullName, battery: currentCustomer.BatteryCapacity || 75 };
+      loadStations().then(() => enterApp());
+    } catch (e) {
+      localStorage.removeItem('evCustomer');
+    }
+  }
+});
+</script>
+</body>
+</html>
